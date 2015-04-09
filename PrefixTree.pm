@@ -1,7 +1,11 @@
 package PrefixTree;
 use strict;
 use Data::Dumper;
-
+#use PerlIO::gzip;
+use IO::Uncompress::Gunzip qw(gunzip $GunzipError) ; 
+use IO::Uncompress::Bunzip2 qw(bunzip2 $Bunzip2Error) ;
+use IO::File ;
+use Storable;
 
 sub new
 {
@@ -21,49 +25,10 @@ sub new
 
 
 	$self->add_dict(@nomeFiles);
-
-
-# while($f < $nFiles){
-		
-# 		$i = 0;
-# 		open $file, "<", $nomeFiles[$f] or die "Erro na leitura!";
-# 				while(<$file>)
-# 				{
-# 				chomp;
-# 				$lista[$i]= $_;
-
-# 				$i++;
-
-# 				}
-
-# 				close $file;
-
-# 		$i = 0;
-
-# 		while(<@lista>){
-# 			$self->add_word($lista[$i]);
-# 			$i++;
-# 			}
-	
-# 	$f++;
-
-# }
-	
-
-
-
-
-
-$self->rem_word("pica");
-
-if($self->word_exists("ola")){
-	
-}
-my $asd = 'a';
-$self->get_words_with_prefix($asd);
-
-
-print Dumper(\$self->{tree});
+	print ":: New tree Added ::\n";
+	#$self->save('teste.txt');
+	#$self->load('teste.txt');
+  
 	return $self;
 }
 
@@ -132,7 +97,9 @@ my $i = 0;
 	for $aux (split //, $palavra) {
 		
 
-		if( exists ($hash->{$aux}) ){}
+		if( exists ($hash->{$aux}) ){
+
+		}
 		else{
 		$hash->{$aux} = {};}
 
@@ -153,23 +120,34 @@ my ($self, @nomeFiles) = @_;
 	my $file;
 	my @lista;
 	my $i = 0;
+	my $pal;
+	my $input;
+	my $buffer;
+
 
 while($f < $nFiles){
-	$i = 0;
+	
 
-	if($nomeFiles[$f]=~ /w+\.gz/ ){
+	if($nomeFiles[$f]=~ /.+\.gz/ ){
+		$i = 0;
+		print "gz uncompress : $nomeFiles[$f]\n";
 
-		open $file, "gunzip -c $nomeFiles[$f] |" or die "Erro na leitura!";
-				while(<$file>)
-				{
-				chomp;
-				$lista[$i]= $_;
+			   $input = new IO::File "$nomeFiles[$f]" or die "Cannot open '$nomeFiles[$f]':+ $!\n" ;;
+   			   $buffer;
+    		   gunzip $input => \$buffer or die "gunzip failed: $GunzipError\n+";
+    		  
+			
+				for $pal ($buffer)
+				{		
+					
+					chomp;
+					$lista[$i]= $pal;
 
-				$i++;
+					$i++;
 
 				}
 
-				close $file;
+				close $input;
 
 		$i = 0;
 
@@ -180,20 +158,27 @@ while($f < $nFiles){
 	}
 
 	else {
+		$i = 0;
+		if($nomeFiles[$f]=~ /.+\.bz2/ ){
+			
+			print "bz2 uncompress : $nomeFiles[$f]\n";
 
-		if($nomeFiles[$f]=~ /w+\.bz2/ ){
+			  $input = new IO::File "$nomeFiles[$f]" or die "Cannot open '$nomeFiles[$f]':+ $!\n" ;;
+   			  $buffer;
+    		  bunzip2 $input => \$buffer or die "bunzip2 failed: $Bunzip2Error\n+";
+    		  
+			
+				for $pal ($buffer)
+				{		
+					
+					chomp;
+					$lista[$i]= $pal;
 
-			open $file, "bunzip2 -c $nomeFiles[$f] |" or die "Erro na leitura!";
-				while(<$file>)
-				{
-				chomp;
-				$lista[$i]= $_;
-
-				$i++;
+					$i++;
 
 				}
 
-				close $file;
+				close $input;
 
 		$i = 0;
 
@@ -204,6 +189,8 @@ while($f < $nFiles){
 	
 
 	}else{
+		$i = 0;
+		print "reading text file : $nomeFiles[$f]\n";
 		open $file, "<", $nomeFiles[$f] or die "Erro na leitura!";
 				while(<$file>)
 				{
@@ -225,9 +212,9 @@ while($f < $nFiles){
 	
 	
 
+			}
 		}
-	}
-		$f++;
+	$f++;
 	}
 }
 
@@ -330,7 +317,7 @@ my ($self, $prefix) = @_;
 	my $cont;
 
 	if ($self->prefix_exists($prefix)){
-		
+	print ":: Words with prefix : \" $prefix \" ::\n";	
 		for $letra (split //, $prefix){
 				$hash = $hash->{$letra};
 
@@ -340,6 +327,7 @@ my ($self, $prefix) = @_;
 
 
 		foreach (@listapalavras){
+
 			print $_;
 			print "\n";
 		}
@@ -353,6 +341,20 @@ my ($self, $prefix) = @_;
 
 }
 
+sub save{
+
+my ($self, $file) = @_;
+
+store $self->{tree}, $file;
+print ":: Saved ::\n $file";
+}
+
+sub load{
+my ($self, $file) = @_;
+
+$self->{tree} = retrieve $file;
+print ":: Loaded ::\n $file";
+}
 
 
 
